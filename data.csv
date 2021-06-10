@@ -1,0 +1,4 @@
+file,actual
+data/cxr.dcm,TB
+data/photo.dcm,TB
+data/puppy.jpg,NOT_TB
