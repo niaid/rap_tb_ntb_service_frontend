@@ -136,7 +136,7 @@ class TBorNotTBDialog(QMainWindow):
          data/nx42.jpg,NOT_TB
          data/p8.dcm,TB
          data/n17.dcm,NOT_TB
-         
+
        Once the data is loaded, clicking on the thumbnail image will display it in
        full resolution alongside the currently avaialble information.
 
@@ -196,6 +196,10 @@ class TBorNotTBDialog(QMainWindow):
         # Use QT's global threadpool, documentation says: "This global thread pool
         # automatically maintains an optimal number of threads based on the
         # number of cores in the CPU."
+        # Getting the number of available CPUs in an OS portable way is not that trivial,
+        # so hopefully QT does it correctly.
+        # See discussion:
+        # https://stackoverflow.com/questions/31346974/portable-way-of-detecting-number-of-usable-cpus-in-python
         self.threadpool = QThreadPool.globalInstance()
 
         # csv file column titles
@@ -795,8 +799,14 @@ class TBorNotTBDialog(QMainWindow):
                 if self.csv_actual_value_column_title in df.columns:
                     # Remove leading/trailing whitespace, acommodate for minor user error in
                     # creation of input csv.
-                    df[self.csv_actual_value_column_title] = df[self.csv_actual_value_column_title].str.strip()
-                    if not df[self.csv_actual_value_column_title].isin([self.positive_label, self.negative_label]).all():
+                    df[self.csv_actual_value_column_title] = df[
+                        self.csv_actual_value_column_title
+                    ].str.strip()
+                    if (
+                        not df[self.csv_actual_value_column_title]
+                        .isin([self.positive_label, self.negative_label])
+                        .all()
+                    ):
                         df = pd.DataFrame()
             except Exception:
                 pass
