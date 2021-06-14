@@ -162,17 +162,25 @@ class TBorNotTBDialog(QMainWindow):
 
     If the input was in the form of a csv file which also contained the known class then
     you can `Save results and evaluation`. This will save the raw results and evaluate the
-    service performance (e.g. accuracy, F1 score etc.). The output includes:
+    service performance. The output includes:
 
-    1. all_results.csv - A csv with the raw results from the service, includes all images.
-    2. valid_results_used_in_evaluation.csv - A csv containing only the valid
+    #. all_results.csv - A csv with the raw results from the service, includes all images.
+    #. valid_results_used_in_evaluation.csv - A csv containing only the valid
        results which were used in the evaluation.
-    3. evaluation_results.csv - A csv containing the evaulation results.
+    #. evaluation_results.csv - A csv containing the evaulation results.
        Evaluation is performed using the services decision and a decision obtained
-       when using the query dataset's optimal threshold, Youden index. The latter appears
-       in parenthesis.
-    4. roc.pdf - ROC curve plot for all algorithms.
-    5. confusion_matrix*.pdf - Confusion matrices for all algorithms using the
+       when using the query dataset's optimal threshold, Youden index = argmax(sensitivity+specificity - 1). The latter appears
+       in parenthesis:
+
+       a. Accuracy: (TP+TN)/(P+N)
+       b. Precision: TP/(TP+FP)
+       c. Recall/Sensitivity: TP/(TP+FN)
+       d. Specificity: TN/(TN+FP)
+       e. F1: 2TP/(2TP+FP+FN)
+       f. Area under the receiver operating curve.
+
+    #. roc.pdf - ROC curve plot for all algorithms.
+    #. confusion_matrix*.pdf - Confusion matrices for all algorithms using the
        service's decision and the decision based on the query dataset's optimal
        threshold.
 
