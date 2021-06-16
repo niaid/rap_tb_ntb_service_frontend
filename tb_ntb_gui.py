@@ -898,7 +898,6 @@ class DataLoader(QThread):
                             )
                         )
                 self.progress_signal.emit()
-                # progress_dialog.setValue(int(0.5 + 100*i/number_of_files))
             except Exception:
                 self.error_indexes.append(i)
                 self.progress_signal.emit()
