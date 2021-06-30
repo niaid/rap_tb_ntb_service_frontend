@@ -26,7 +26,6 @@ from PySide2.QtWidgets import (
     QComboBox,
     QAction,
     QSplitter,
-    qApp,
     QProgressDialog,
     QTextBrowser,
 )
@@ -169,7 +168,8 @@ class TBorNotTBDialog(QMainWindow):
        results which were used in the evaluation.
     #. evaluation_results.csv - A csv containing the evaulation results.
        Evaluation is performed using the services decision and a decision obtained
-       when using the query dataset's optimal threshold, Youden index = argmax(sensitivity+specificity - 1). The latter appears
+       when using the query dataset's optimal threshold,
+       Youden index = argmax(sensitivity+specificity - 1). The latter appears
        in parenthesis:
 
        a. Accuracy: (TP+TN)/(P+N)
@@ -205,7 +205,7 @@ class TBorNotTBDialog(QMainWindow):
         # csv file column titles
         self.csv_filename_column_title = "file"
         self.csv_actual_value_column_title = "actual"
-        self.csv_service_response_column_title = "service_response"
+        self.csv_service_response_column_title = "service_last_response"
         self.csv_file_size_column_title = "file_size_bytes"
 
         # service labels
@@ -216,7 +216,7 @@ class TBorNotTBDialog(QMainWindow):
         self.default_number_of_retries = 3
         self.timeout_range = [1, 60]
         self.default_timeout = 5
-        self.endpoint = "https://ria.niaidawsdev.net/TBorNotTB"
+        self.endpoint = "https://ria.niaidawsqa.net/TBorNotTB"  # "https://ria.niaidawsdev.net/TBorNotTB"
         self.algorithms = {"DenseNet121": "best", "DenseNet121 Ensemble": "ensemble"}
 
         # Size of thumbnails to use in the GUI
@@ -249,6 +249,16 @@ class TBorNotTBDialog(QMainWindow):
         self.__create_gui()
         self.setWindowTitle("TB or Not TB - That is the Question")
         self.show()
+
+    def closeEvent(self, event):
+        """
+        Override the closeEvent method so that clicking the 'x' button also
+        closes all of the dialogs.
+
+        """
+        self.help_dialog.close()
+        self.settings_dialog.close()
+        event.accept()
 
     def __rap_tb_ntb_query(self, url_name, algorithm_name, timeout):
         """
@@ -352,7 +362,7 @@ class TBorNotTBDialog(QMainWindow):
         self.save_evaluate_action.setEnabled(False)
 
         quit_action = QAction("&Quit", self)
-        quit_action.triggered.connect(qApp.quit)
+        quit_action.triggered.connect(QApplication.instance().closeAllWindows)
         file_menu.addAction(quit_action)
 
         self.help_button = QPushButton("Help")
