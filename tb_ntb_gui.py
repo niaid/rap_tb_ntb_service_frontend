@@ -197,9 +197,12 @@ class TBorNotTBDialog(QMainWindow):
         # automatically maintains an optimal number of threads based on the
         # number of cores in the CPU."
         # Getting the number of available CPUs in an OS portable way is not that trivial,
-        # so hopefully QT does it correctly.
+        # so hopefully QT does it correctly. The default number of threads is QThread.idealThreadCount()
         # See discussion:
         # https://stackoverflow.com/questions/31346974/portable-way-of-detecting-number-of-usable-cpus-in-python
+        # The user can select to use fewer threads if they encounter issues with the service response due to
+        # this program overloading it with concurrent requests.
+        #
         self.threadpool = QThreadPool.globalInstance()
 
         # csv file column titles
@@ -547,6 +550,7 @@ class TBorNotTBDialog(QMainWindow):
             cb.setChecked(new_value)
 
     def __call_service(self):
+        self.threadpool.setMaxThreadCount(int(self.threadcount_value_label.text()))
         self.total_quries = 0
         for cb in self.all_checkboxes:
             if cb.isChecked():
@@ -827,6 +831,19 @@ class TBorNotTBDialog(QMainWindow):
         wid.setWindowTitle("Settings")
         input_layout = QVBoxLayout()
         wid.setLayout(input_layout)
+
+        layout = QHBoxLayout()
+        layout.addWidget(QLabel("Number of concurrent threads:"))
+        threadcount_slider = QSlider(orientation=Qt.Horizontal)
+        threadcount_slider.setMinimum(1)
+        threadcount_slider.setMaximum(self.threadpool.maxThreadCount())
+        threadcount_slider.setValue(self.threadpool.maxThreadCount())
+        layout.addWidget(threadcount_slider)
+        self.threadcount_value_label = QLabel()
+        self.threadcount_value_label.setNum(self.threadpool.maxThreadCount())
+        threadcount_slider.valueChanged.connect(self.threadcount_value_label.setNum)
+        layout.addWidget(self.threadcount_value_label)
+        input_layout.addLayout(layout)
 
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Query timeout [sec]:"))
