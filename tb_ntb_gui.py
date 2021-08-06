@@ -220,7 +220,7 @@ class TBorNotTBDialog(QMainWindow):
         self.timeout_range = [1, 60]
         self.default_timeout = 5
         self.endpoint = "https://ria.niaidawsqa.net/TBorNotTB"  # "https://ria.niaidawsdev.net/TBorNotTB"
-        self.algorithms = {"DenseNet121": "best", "DenseNet121 Ensemble": "ensemble"}
+        self.algorithms = {"DenseNet121": "single", "DenseNet121 Ensemble": "ensemble"}
 
         # Size of thumbnails to use in the GUI
         self.thumbnail_size = [128] * 2
