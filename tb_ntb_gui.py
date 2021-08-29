@@ -28,6 +28,7 @@ from PySide2.QtWidgets import (
     QSplitter,
     QProgressDialog,
     QTextBrowser,
+    QSizePolicy,
 )
 from PySide2.QtCore import Qt, QObject, QRunnable, Signal, QThreadPool, QThread
 from PySide2.QtGui import QPixmap, QImage, QIcon
@@ -94,8 +95,12 @@ class HelpDialog(QWidget):
 
 class TBorNotTBDialog(QMainWindow):
     """
+    ============
     TB or not-TB
     ============
+
+    .. warning:: **Not For Clinical Use**
+
 
     This program allows you to classify **frontal chest x-ray images**, anterior-posterior
     or posterior-anterior, into one of two classes, TB or not-TB, using the
@@ -394,7 +399,16 @@ class TBorNotTBDialog(QMainWindow):
         """
         Creation and layout of main GUI.
         """
+        main_wid = QWidget()
+        layout = QVBoxLayout()
+        main_wid.setLayout(layout)
+        warning_label = QLabel("NOT FOR CLINICAL USE")
+        warning_label.setAlignment(Qt.AlignCenter)
+        warning_label.setStyleSheet("QLabel { color : red; }")
+        layout.addWidget(warning_label)
+
         wid = QSplitter()
+        layout.addWidget(wid, 2)
 
         left_widget = QWidget()
         wid.addWidget(left_widget)
@@ -436,7 +450,7 @@ class TBorNotTBDialog(QMainWindow):
         self.selected_image_information_edit.setReadOnly(True)
         info_layout.addWidget(self.selected_image_information_edit)
 
-        return wid
+        return main_wid
 
     def __load_data_and_config(self):
         dialog = ExistingFileOrDirectoryDialog(self)
