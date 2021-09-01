@@ -261,11 +261,23 @@ class TBorNotTBDialog(QMainWindow):
     def closeEvent(self, event):
         """
         Override the closeEvent method so that clicking the 'x' button also
-        closes all of the dialogs.
+        closes all of the dialogs. As the program is multithreaded we also need
+        to tell all the workers to stop working and clear the threadpool so no
+        queued workers are started. Unfortunatly, we cannot stop the working threads
+        immediatly, we have to indicate that they should stop and that will eventually
+        happen. The more active workers we have the longer exiting will take.
 
         """
         self.help_dialog.close()
         self.settings_dialog.close()
+        # Tell all workers to stop working.
+        for worker in self.query_workers:
+            worker.continue_running = False
+        # The application will hang till all the active runnables
+        # return. Calling the threadpool's clear method removes all the runnables
+        # from the queue so that they aren't launched and we end up waiting for them
+        # too.
+        self.threadpool.clear()
         event.accept()
 
     def __rap_tb_ntb_query(self, url_name, algorithm_name, timeout):
@@ -565,6 +577,7 @@ class TBorNotTBDialog(QMainWindow):
 
     def __call_service(self):
         self.threadpool.setMaxThreadCount(int(self.threadcount_value_label.text()))
+        self.query_workers = []
         self.total_quries = 0
         for cb in self.all_checkboxes:
             if cb.isChecked():
@@ -593,6 +606,7 @@ class TBorNotTBDialog(QMainWindow):
                 query_service.signals.finished.connect(self.__query_service_finished)
                 self.all_buttons[i].setStyleSheet(self.waiting_button_stylesheet)
                 self.threadpool.start(query_service)
+                self.query_workers.append(query_service)
         self.update()
 
     def __query_service_finished(self, final_results):
@@ -1009,24 +1023,33 @@ class QueryService(QRunnable):
         self.signals = QueryServiceSignals()
         self.results = {}
         self.error_message = ""
+        self.continue_running = True
 
     def run(self):
         try:
             num_tries = 0
             no_response = True
-            while num_tries < self.num_retries and no_response:
+            while (
+                num_tries < self.num_retries and no_response and self.continue_running
+            ):
                 self.error_message, self.results = self.query_function(self.file_name)
                 num_tries = num_tries + 1
                 if not self.error_message:
                     no_response = False
-            self.signals.finished.emit((self.df_row, self.error_message, self.results))
+            if self.continue_running:
+                self.signals.finished.emit(
+                    (self.df_row, self.error_message, self.results)
+                )
         # Use the stack trace as the error message to provide enough
         # detailes for debugging.
         except Exception:
-            self.error_message = (
-                "Exception occurred during computation:\n" + traceback.format_exc()
-            )
-            self.signals.finished.emit((self.df_row, self.error_message, self.results))
+            if self.continue_running:
+                self.error_message = (
+                    "Exception occurred during computation:\n" + traceback.format_exc()
+                )
+                self.signals.finished.emit(
+                    (self.df_row, self.error_message, self.results)
+                )
 
 
 if __name__ == "__main__":
