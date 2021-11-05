@@ -209,6 +209,7 @@ class TBorNotTBDialog(QMainWindow):
         # this program overloading it with concurrent requests.
         #
         self.threadpool = QThreadPool.globalInstance()
+        self.query_workers = []
 
         # csv file column titles
         self.csv_filename_column_title = "file"
