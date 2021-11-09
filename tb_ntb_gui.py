@@ -736,7 +736,7 @@ class TBorNotTBDialog(QMainWindow):
             fpr, tpr, thresholds = metrics.roc_curve(
                 valid_results_df[self.csv_actual_value_column_title],
                 valid_results_df[f"{algo_name}: probability_of_TB"],
-                self.positive_label,
+                pos_label = self.positive_label,
             )
             roc_auc = metrics.auc(fpr, tpr)
             youden_threshold = thresholds[np.argmax(tpr - fpr)]
