@@ -16,7 +16,7 @@ repos:
      args: ['--allow-missing-credentials'] # allow hook to pass when no credentials are detected
    - id: detect-private-key    
 - repo: https://github.com/psf/black
-  rev: 21.12b0
+  rev: 22.3.0
   hooks: # check conformance to black formatting
    - id: black 
      args: ['--check'] # if run without arguments, will fail and will format the files
