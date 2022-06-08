@@ -14,7 +14,6 @@ dependencies:
   - docutils #used for converting rst to html
   - PySide2
   - requests
-  - spyder #only used for development, editor
   - flake8 #only used for development, test code formatting
   - pip
   - pip:

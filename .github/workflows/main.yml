@@ -1,0 +1,26 @@
+name: rap_tb_ntb_service_frontend_linting
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # The specific pre-commit tests configurations are found in
+  # the .pre-commit-config.yaml file at the root of the repository
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v2
+    - name: pre-commit
+    - uses: pre-commit/action@v2.0.3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: trufflehog3 secrets scanner
+      run: |
+        python -m pip install trufflehog3
+        trufflehog3 -v . && echo "tufflehog3 secrets scan passed"
