@@ -1,3 +1,5 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) &nbsp;&nbsp;![RAP TB/not-TB Frontend Testing](https://github.com/niaid/rap_tb_ntb_service_frontend/actions/workflows/main.yml/badge.svg)
+
 ## Overview
 
 This repository contains a PySide2/Qt5 based GUI for the [TB/not-TB service](https://rap.tbportals.niaid.nih.gov/#!/dashboard/image_analysis) from
