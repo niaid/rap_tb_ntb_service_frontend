@@ -17,7 +17,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-python@v2
     - name: pre-commit
-    - uses: pre-commit/action@v2.0.3
+      uses: pre-commit/action@v2.0.3
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - name: trufflehog3 secrets scanner
