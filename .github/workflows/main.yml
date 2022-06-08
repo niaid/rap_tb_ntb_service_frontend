@@ -1,4 +1,4 @@
-name: rap_tb_ntb_service_frontend_linting
+name: RAP TB/not-TB Frontend Testing
 
 on:
   push:
@@ -20,7 +20,10 @@ jobs:
       uses: pre-commit/action@v2.0.3
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+    # run trufflehog3 with no-entropy because the sample images are
+    # stored with git-lfs and those files contain the sha256 instead of the
+    # actual image. The sha's are all high entropy
     - name: trufflehog3 secrets scanner
       run: |
         python -m pip install trufflehog3
-        trufflehog3 -v . && echo "tufflehog3 secrets scan passed"
+        trufflehog3 -v --no-entropy . && echo "tufflehog3 secrets scan passed"
