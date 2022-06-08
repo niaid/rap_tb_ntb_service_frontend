@@ -1,3 +1,21 @@
+# =========================================================================
+#
+#  Copyright Ziv Yaniv
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0.txt
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+# =========================================================================
+
 import requests
 import traceback
 import os
@@ -7,6 +25,7 @@ import numpy as np
 import inspect
 from sklearn import metrics
 import matplotlib.pyplot as plt
+import tempfile
 
 from PySide2.QtWidgets import (
     QMainWindow,
@@ -28,7 +47,6 @@ from PySide2.QtWidgets import (
     QSplitter,
     QProgressDialog,
     QTextBrowser,
-    QSizePolicy,
 )
 from PySide2.QtCore import Qt, QObject, QRunnable, Signal, QThreadPool, QThread
 from PySide2.QtGui import QPixmap, QImage, QIcon
@@ -99,15 +117,15 @@ class TBorNotTBDialog(QMainWindow):
     TB or not-TB
     ============
 
-    .. warning:: **Not For Clinical Use**
-
+    .. warning:: **Not For Clinical Use Or Clinical Decision Making**
 
     This program allows you to classify **frontal chest x-ray images**, anterior-posterior
     or posterior-anterior, into one of two classes, TB or not-TB, using the
     `NIAID <https://www.niaid.nih.gov/>`_ TB
     Portals web service. The program supports
     all of the image formats supported by the `SimpleITK <https://simpleitk.org/>`_ image
-    analysis toolkit (DICOM, jpg, png, tiff...).
+    analysis toolkit (DICOM, jpg, png, tiff...). In practice it converts them to DICOM after
+    removing all meta-data (PII/PHI), so that the image sent to the service is anonymized.
 
     Additional `information on the NIAID TB Portals program is available
     online <https://tbportals.niaid.nih.gov/>`_.
@@ -195,7 +213,7 @@ class TBorNotTBDialog(QMainWindow):
         super(TBorNotTBDialog, self).__init__()
 
         # Disable the SimpleITK warnings (mostly the "Converting from MONOCHROME1 to MONOCHROME2"
-        # which is common for our DICOM images)
+        # which is common for DICOM images)
         sitk.ProcessObject.GlobalWarningDisplayOff()
 
         # Use QT's global threadpool, documentation says: "This global thread pool
@@ -415,7 +433,7 @@ class TBorNotTBDialog(QMainWindow):
         main_wid = QWidget()
         layout = QVBoxLayout()
         main_wid.setLayout(layout)
-        warning_label = QLabel("NOT FOR CLINICAL USE")
+        warning_label = QLabel("NOT FOR CLINICAL USE OR CLINICAL DECISION MAKING")
         warning_label.setAlignment(Qt.AlignCenter)
         warning_label.setStyleSheet("QLabel { color : red; }")
         layout.addWidget(warning_label)
@@ -736,7 +754,7 @@ class TBorNotTBDialog(QMainWindow):
             fpr, tpr, thresholds = metrics.roc_curve(
                 valid_results_df[self.csv_actual_value_column_title],
                 valid_results_df[f"{algo_name}: probability_of_TB"],
-                pos_label = self.positive_label,
+                pos_label=self.positive_label,
             )
             roc_auc = metrics.auc(fpr, tpr)
             youden_threshold = thresholds[np.argmax(tpr - fpr)]
@@ -757,7 +775,7 @@ class TBorNotTBDialog(QMainWindow):
                 linestyle="solid",
             )
             # Plot confusion matrix for this algorithm using the fixed/service threshold and the
-            # optimal dataset specific threshold (Youden index)
+            # optimal dataset specific threshold (max Youden index, argmax(t) sensitivity(t)+specificity(t)-1)
             plt.figure()
             metrics.plot_confusion_matrix(
                 identity_classifier,
@@ -1020,27 +1038,47 @@ class QueryService(QRunnable):
         self.num_retries = num_retries
         self.df_row = df_row
         self.query_function = query_function
-        self.file_name = file_name
         self.signals = QueryServiceSignals()
         self.results = {}
         self.error_message = ""
         self.continue_running = True
+        self.image_file_reader = sitk.ImageFileReader()
+        self.image_file_reader.SetFileName(file_name)
 
     def run(self):
         try:
-            num_tries = 0
-            no_response = True
-            while (
-                num_tries < self.num_retries and no_response and self.continue_running
-            ):
-                self.error_message, self.results = self.query_function(self.file_name)
-                num_tries = num_tries + 1
-                if not self.error_message:
-                    no_response = False
-            if self.continue_running:
-                self.signals.finished.emit(
-                    (self.df_row, self.error_message, self.results)
-                )
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                self.image_file_reader.ReadImageInformation()
+                # 2D image posing as a 3D one
+                image_size = list(self.image_file_reader.GetSize())
+                if len(image_size) == 3 and image_size[2] == 1:
+                    image_size[2] = 0
+                self.image_file_reader.SetExtractSize(image_size)
+                image = self.image_file_reader.Execute()
+                # Clear all of the meta-data, write to temporary DICOM file and
+                # use that as the query image, ensures that no PII/PHI leaves the
+                # local machine.
+                for k in image.GetMetaDataKeys():
+                    image.EraseMetaData(k)
+                anonymized_file_name = os.path.join(tmpdirname, "anon.dcm")
+                sitk.WriteImage(image, anonymized_file_name)
+                num_tries = 0
+                no_response = True
+                while (
+                    num_tries < self.num_retries
+                    and no_response
+                    and self.continue_running
+                ):
+                    self.error_message, self.results = self.query_function(
+                        anonymized_file_name
+                    )
+                    num_tries = num_tries + 1
+                    if not self.error_message:
+                        no_response = False
+                if self.continue_running:
+                    self.signals.finished.emit(
+                        (self.df_row, self.error_message, self.results)
+                    )
         # Use the stack trace as the error message to provide enough
         # detailes for debugging.
         except Exception:
