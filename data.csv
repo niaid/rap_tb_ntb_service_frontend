@@ -1,4 +1,4 @@
 file,actual
-data/cxr.dcm,TB
-data/photo.dcm,TB
-data/puppy.jpg,NOT_TB
+data/tb1.dcm,TB
+data/tb2.dcm,TB
+data/ntb1.png,NOT_TB
