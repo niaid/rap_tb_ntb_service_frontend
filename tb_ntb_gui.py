@@ -130,6 +130,9 @@ class TBorNotTBDialog(QMainWindow):
     Additional `information on the NIAID TB Portals program is available
     online <https://tbportals.niaid.nih.gov/>`_.
 
+    Swagger based documentation of the TB Portals service API is
+    `available online <https://rap-ria.tbportals.niaid.nih.gov/swagger/>`_.
+
     Application Settings
     --------------------
 
