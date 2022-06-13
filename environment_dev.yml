@@ -19,3 +19,4 @@ dependencies:
   - pip:
     - black #only used for development, code formatting
     - QDarkStyle #dark stylesheet for Qt applications
+    - pre-commit

@@ -46,3 +46,8 @@ pip install requirements.txt
 Note that the three-image dataset available from this repository is stored using [git-lfs](https://git-lfs.github.com/) so you will need to install that if you want to obtain the images as part of the clone.
 
 To install all of the components required by the program and additional ones used for development use the `environment_dev.yml` or `requirements_dev.txt` files.
+
+After creating the virtual development environment, install the githook scripts specified in the `.pre-commit-config.yaml`:
+```
+pre-commit install
+```
