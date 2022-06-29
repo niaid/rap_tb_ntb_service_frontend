@@ -780,10 +780,9 @@ class TBorNotTBDialog(QMainWindow):
             # Plot confusion matrix for this algorithm using the fixed/service threshold and the
             # optimal dataset specific threshold (max Youden index, argmax(t) sensitivity(t)+specificity(t)-1)
             plt.figure()
-            metrics.plot_confusion_matrix(
-                identity_classifier,
-                valid_results_df[f"{algo_name}: decision"],
+            metrics.ConfusionMatrixDisplay.from_predictions(
                 valid_results_df[self.csv_actual_value_column_title],
+                valid_results_df[f"{algo_name}: decision"],
                 cmap=plt.cm.Blues,
                 colorbar=False,
             )
@@ -794,12 +793,11 @@ class TBorNotTBDialog(QMainWindow):
                 bbox_inches="tight",
             )
             plt.figure()
-            metrics.plot_confusion_matrix(
-                identity_classifier,
+            metrics.ConfusionMatrixDisplay.from_predictions(
+                valid_results_df[self.csv_actual_value_column_title],
                 valid_results_df[
                     f"{algo_name}: dataset_youden_threshold_decision({youden_threshold})"
                 ],
-                valid_results_df[self.csv_actual_value_column_title],
                 cmap=plt.cm.Blues,
                 colorbar=False,
             )
