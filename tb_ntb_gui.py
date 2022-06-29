@@ -737,11 +737,6 @@ class TBorNotTBDialog(QMainWindow):
                 ),
             ),
         ]
-        identity_classifier = type(
-            "IdentityClassifier",
-            (),
-            {"predict": lambda i: i, "_estimator_type": "classifier"},
-        )
         evaluation_results = []
         # Setup of the ROC figure, all ROC curves from the algorithms will plot
         # to this figure
