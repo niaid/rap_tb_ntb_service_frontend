@@ -285,8 +285,8 @@ class TBorNotTBDialog(QMainWindow):
         Override the closeEvent method so that clicking the 'x' button also
         closes all of the dialogs. As the program is multithreaded we also need
         to tell all the workers to stop working and clear the threadpool so no
-        queued workers are started. Unfortunatly, we cannot stop the working threads
-        immediatly, we have to indicate that they should stop and that will eventually
+        queued workers are started. Unfortunately, we cannot stop the working threads
+        immediately, we have to indicate that they should stop and that will eventually
         happen. The more active workers we have the longer exiting will take.
 
         """
@@ -421,7 +421,7 @@ class TBorNotTBDialog(QMainWindow):
 
     def __file_processed(self):
         """
-        Callback invoked when the service returns a response. Faliure and success
+        Callback invoked when the service returns a response. Failure and success
         are treated in the same manner.
         """
         self.num_files_loaded = self.num_files_loaded + 1
@@ -494,11 +494,6 @@ class TBorNotTBDialog(QMainWindow):
         # Get the input file names, either from a csv file or from the subdirectories
         # under the data root directory.
         self.num_files_loaded = 0
-        self.progress_dialog = QProgressDialog("Loading data...", None, 0, 100)
-        self.progress_dialog.setWindowModality(Qt.WindowModal)
-        # Display the progress dialog only if its estimated operation duration is
-        # more than 2000ms.
-        self.progress_dialog.setMinimumDuration(2000)
 
         self.all_df = self.__get_file_names_df(dialog.selectedFiles()[0])
         if self.all_df.empty or (
@@ -508,6 +503,12 @@ class TBorNotTBDialog(QMainWindow):
                 "No data loaded (error in csv file or empty directory)."
             )
         else:
+            self.progress_dialog = QProgressDialog("Loading data...", None, 0, 100)
+            self.progress_dialog.setWindowModality(Qt.WindowModal)
+            # Display the progress dialog only if its estimated operation duration is
+            # more than 2000ms.
+            self.progress_dialog.setMinimumDuration(2000)
+
             self.data_loader.reset()
             self.data_loader.file_names_list = list(
                 self.all_df[self.csv_filename_column_title]
@@ -854,7 +855,7 @@ class TBorNotTBDialog(QMainWindow):
                 df = pd.read_csv(csv_or_dir_name)
                 # Check if dataframe has actual classes and that they are as expected
                 if self.csv_actual_value_column_title in df.columns:
-                    # Remove leading/trailing whitespace, acommodate for minor user error in
+                    # Remove leading/trailing whitespace, accommodate for minor user error in
                     # creation of input csv.
                     df[self.csv_actual_value_column_title] = df[
                         self.csv_actual_value_column_title
@@ -866,7 +867,7 @@ class TBorNotTBDialog(QMainWindow):
                     ):
                         df = pd.DataFrame()
             except Exception:
-                pass
+                df = pd.DataFrame()
         return df
 
     def __create_settings_widget(self):
