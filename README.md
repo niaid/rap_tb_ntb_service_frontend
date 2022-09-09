@@ -10,7 +10,7 @@ The program allows you to load images and send them to the service. If the groun
 ![](gui_screenshot.png)
 
 ### Download
-1. Dowload code as [zip file](https://github.com/niaid/rap_tb_ntb_service_frontend/archive/refs/heads/main.zip).
+1. Download code as [zip file](https://github.com/niaid/rap_tb_ntb_service_frontend/archive/refs/heads/main.zip).
 2. Clone repository using git (with GitHub account):
 
   ```
@@ -38,7 +38,7 @@ The program allows you to load images and send them to the service. If the groun
 ```
 cd path_to_code_download_location
 python -m pip install --upgrade pip
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 ### Development
