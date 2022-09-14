@@ -20,8 +20,8 @@ jobs:
         python-version: 3.9
     - name: run pre-commit
       run: |
-      pip install pre-commit
-      pre-commit run --all-files
+        pip install pre-commit
+        pre-commit run --all-files
     # run trufflehog3 with no-entropy because the sample images are
     # stored with git-lfs and those files contain the sha256 instead of the
     # actual image. The sha's are all high entropy
