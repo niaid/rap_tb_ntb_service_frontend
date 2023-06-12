@@ -20,6 +20,8 @@ import requests
 import traceback
 import os
 import SimpleITK as sitk
+from SimpleITK.utilities.pyside import sitk2qpixmap
+from SimpleITK.utilities.resize import resize
 import pandas as pd
 import numpy as np
 import inspect
@@ -27,7 +29,7 @@ from sklearn import metrics
 import matplotlib.pyplot as plt
 import tempfile
 
-from PySide2.QtWidgets import (
+from PySide6.QtWidgets import (
     QMainWindow,
     QErrorMessage,
     QSlider,
@@ -43,14 +45,13 @@ from PySide2.QtWidgets import (
     QCheckBox,
     QScrollArea,
     QComboBox,
-    QAction,
     QSplitter,
     QProgressDialog,
     QTextBrowser,
 )
-from PySide2.QtCore import Qt, QObject, QRunnable, Signal, QThreadPool, QThread
-from PySide2.QtGui import QPixmap, QImage, QIcon
-import PySide2.QtGui
+from PySide6.QtCore import Qt, QObject, QRunnable, Signal, QThreadPool, QThread
+from PySide6.QtGui import QPixmap, QImage, QIcon, QKeySequence, QAction
+import PySide6.QtGui
 import qdarkstyle
 from docutils.core import publish_string
 
@@ -149,7 +150,8 @@ class TBorNotTBDialog(QMainWindow):
     1. Selection of a directory - directory and all its subdirectories are scanned for
        images which are used as input.
     2. Selection of a comma-separated-values (csv) file - the file is expected to have a column
-       containing the paths to image files. The column header has a **required name,
+       containing the relative paths to image files. Relative with respect to the location of the
+       csv file. The column header has a **required name,
        'file'**. If the file also has a column header named 'actual', that column
        is expected to have entries of the form TB or NOT_TB and will be used to
        evaluate the results obtained from the service.
@@ -163,7 +165,7 @@ class TBorNotTBDialog(QMainWindow):
          data/n17.dcm,NOT_TB
 
        Once the data is loaded, clicking on the thumbnail image will display it in
-       full resolution alongside the currently avaialble information.
+       a larger window alongside the currently available information.
 
     Query Service
     -------------
@@ -288,7 +290,6 @@ class TBorNotTBDialog(QMainWindow):
         queued workers are started. Unfortunately, we cannot stop the working threads
         immediately, we have to indicate that they should stop and that will eventually
         happen. The more active workers we have the longer exiting will take.
-
         """
         self.help_dialog.close()
         self.settings_dialog.close()
@@ -344,32 +345,7 @@ class TBorNotTBDialog(QMainWindow):
         # the '>' symbol. As all invocations of this function are done with plain
         # text we use the convertToPlainText method to ensure that it is displayed
         # correctly.
-        error_dialog.showMessage(PySide2.QtGui.Qt.convertFromPlainText(message))
-
-    def __sitkimage_2_qpixmap(self, sitk_image):
-        """
-        Convert a SimpleITK.Image to Qt's QPixmap. Works with grayscale or a three
-        channel image where we assume that it represents values in the RGB color space.
-        In SimpleITK there is no notion of color space, so if the three channels were in
-        HSV colorspace the display will look strange.
-        """
-        if (
-            sitk_image.GetNumberOfComponentsPerPixel() == 1
-            and sitk_image.GetPixelID() != sitk.sitkUInt8
-        ):
-            sitk_image = sitk.Cast(sitk.RescaleIntensity(sitk_image), sitk.sitkUInt8)
-        arr = sitk.GetArrayViewFromImage(sitk_image)
-        return QPixmap.fromImage(
-            QImage(
-                arr.data.tobytes(),
-                sitk_image.GetWidth(),
-                sitk_image.GetHeight(),
-                arr.strides[0],  # number of bytes per row
-                QImage.Format_Grayscale8
-                if sitk_image.GetNumberOfComponentsPerPixel() == 1
-                else QImage.Format_RGB888,
-            )
-        )
+        error_dialog.showMessage(PySide6.QtGui.Qt.convertFromPlainText(message))
 
     def __create_gui(self):
         """
@@ -381,10 +357,12 @@ class TBorNotTBDialog(QMainWindow):
         menu_bar.setNativeMenuBar(False)
         file_menu = menu_bar.addMenu("&File")
         settings_action = QAction("&Settings", self)
+        settings_action.setShortcut(QKeySequence("Ctrl+s"))
         settings_action.triggered.connect(self.settings_dialog.show)
         file_menu.addAction(settings_action)
 
         load_action = QAction("&Load data", self)
+        load_action.setShortcut(QKeySequence("Ctrl+l"))
         load_action.triggered.connect(self.__load_data_and_config)
         file_menu.addAction(load_action)
 
@@ -404,6 +382,7 @@ class TBorNotTBDialog(QMainWindow):
         self.save_evaluate_action.setEnabled(False)
 
         quit_action = QAction("&Quit", self)
+        quit_action.setShortcut(QKeySequence("Ctrl+q"))
         quit_action.triggered.connect(QApplication.instance().closeAllWindows)
         file_menu.addAction(quit_action)
 
@@ -586,7 +565,7 @@ class TBorNotTBDialog(QMainWindow):
                 image_file_reader.SetExtractSize(image_size)
             image = image_file_reader.Execute()
             self.selected_image_row_index = image_row_index
-            self.selected_image_label.setPixmap(self.__sitkimage_2_qpixmap(image))
+            self.selected_image_label.setPixmap(sitk2qpixmap(image))
             self.selected_image_information_edit.setText(
                 "\n".join([f"{index}: {value}" for index, value in image_info.items()])
             )
@@ -842,6 +821,13 @@ class TBorNotTBDialog(QMainWindow):
         )
 
     def __get_file_names_df(self, csv_or_dir_name):
+        """
+        Given the path to a csv or directory return a dataframe with the
+        column defined by self.csv_filename_column_title containing the file
+        names. If a csv file and it has the actual values associated with each file
+        (column title defined by self.csv_actual_value_column_title) check that the
+        values in that column match the allowed ones.
+        """
         df = pd.DataFrame()
         if os.path.isdir(csv_or_dir_name):
             file_names = []
@@ -853,6 +839,10 @@ class TBorNotTBDialog(QMainWindow):
         else:
             try:
                 df = pd.read_csv(csv_or_dir_name)
+                dir_path = os.path.dirname(os.path.abspath(csv_or_dir_name))
+                df[self.csv_filename_column_title] = df[
+                    self.csv_filename_column_title
+                ].apply(lambda x: os.path.join(dir_path, x))
                 # Check if dataframe has actual classes and that they are as expected
                 if self.csv_actual_value_column_title in df.columns:
                     # Remove leading/trailing whitespace, accommodate for minor user error in
@@ -999,28 +989,8 @@ class DataLoader(QThread):
             final_image = sitk.Cast(sitk.RescaleIntensity(image), sitk.sitkUInt8)
         else:
             final_image = image
-        new_spacing = [
-            ((osz - 1) * ospc) / (nsz - 1)
-            for ospc, osz, nsz in zip(
-                final_image.GetSpacing(), final_image.GetSize(), new_size
-            )
-        ]
-        new_spacing = [max(new_spacing)] * final_image.GetDimension()
-        center = final_image.TransformContinuousIndexToPhysicalPoint(
-            [sz / 2.0 for sz in final_image.GetSize()]
-        )
-        new_origin = [
-            c - c_index * nspc
-            for c, c_index, nspc in zip(
-                center, [sz / 2.0 for sz in new_size], new_spacing
-            )
-        ]
-        final_image = sitk.Resample(
-            final_image,
-            size=new_size,
-            outputOrigin=new_origin,
-            outputSpacing=new_spacing,
-            defaultPixelValue=outside_pixel_value,
+        final_image = resize(
+            final_image, new_size, fill_value=outside_pixel_value, anti_aliasing_sigma=0
         )
         return final_image
 
@@ -1088,8 +1058,12 @@ class QueryService(QRunnable):
                 )
 
 
-if __name__ == "__main__":
+def main():
     app = QApplication([])
-    app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api="pyside2"))
+    app.setStyleSheet(qdarkstyle.load_stylesheet(qt_api="pyside6"))
     tb_ntb_dialog = TBorNotTBDialog()  # noqa: F841
-    app.exec_()
+    app.exec()
+
+
+if __name__ == "__main__":
+    main()
