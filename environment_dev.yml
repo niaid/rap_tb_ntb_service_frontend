@@ -12,7 +12,7 @@ dependencies:
   - numpy
   - pandas
   - docutils #used for converting rst to html
-  - PySide2
+  - PySide6
   - requests
   - flake8 #only used for development, test code formatting
   - pip
@@ -20,3 +20,4 @@ dependencies:
     - black #only used for development, code formatting
     - QDarkStyle #dark stylesheet for Qt applications
     - pre-commit
+    - git+https://github.com/SimpleITK/SimpleITKUtilities

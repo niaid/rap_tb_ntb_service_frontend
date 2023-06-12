@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains a PySide2/Qt5 based GUI for the [TB/not-TB service](https://rap.tbportals.niaid.nih.gov/#!/dashboard/image_analysis) from
+This repository contains a PySide6/Qt6 based GUI for the [TB/not-TB service](https://rap.tbportals.niaid.nih.gov/#!/dashboard/image_analysis) from
 the [NIAID TBPortals program](https://tbportals.niaid.nih.gov/) (contact: TBPortalsInfo@niaid.nih.gov).
 
 The program allows you to load images and send them to the service. If the ground truth labels for the images are known it also allows you to evaluate the service's performance. For additional details see the program's help menu.
