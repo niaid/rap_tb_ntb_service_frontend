@@ -50,7 +50,7 @@ from PySide6.QtWidgets import (
     QTextBrowser,
 )
 from PySide6.QtCore import Qt, QObject, QRunnable, Signal, QThreadPool, QThread
-from PySide6.QtGui import QPixmap, QImage, QIcon, QKeySequence, QAction
+from PySide6.QtGui import QPixmap, QImage, QIcon, QKeySequence, QAction, QPalette
 import PySide6.QtGui
 import qdarkstyle
 from docutils.core import publish_string
@@ -138,7 +138,7 @@ class TBorNotTBDialog(QMainWindow):
     --------------------
 
     The application allows you to select the specific algorithm to call, and set the
-    query timeout and number of retries. Currently there are only two available algorithms,
+    query timeout and number of retries. Currently, there are only two available algorithms,
     one using a single deep learning convolutional neural network model, DenseNet121,
     and another that uses multiple models, an ensemble of DenseNet121 networks.
 
@@ -165,7 +165,9 @@ class TBorNotTBDialog(QMainWindow):
          data/n17.dcm,NOT_TB
 
        Once the data is loaded, clicking on the thumbnail image will display it in
-       a larger window alongside the currently available information.
+       a larger window alongside the currently available information. The larger window
+       allows you to zoom in and out. See the View menu or use keyboard shortcuts. Note
+       that on Mac the keyboard shortcuts are Command-Shift-Plus and Command-Minus.
 
     Query Service
     -------------
@@ -386,6 +388,16 @@ class TBorNotTBDialog(QMainWindow):
         quit_action.triggered.connect(QApplication.instance().closeAllWindows)
         file_menu.addAction(quit_action)
 
+        view_menu = menu_bar.addMenu("&View")
+        zoom_in_action = QAction("&Zoom in", self)
+        zoom_in_action.triggered.connect(lambda: self.__zoom(6.0 / 5.0))
+        zoom_in_action.setShortcut(QKeySequence("Ctrl++"))
+        view_menu.addAction(zoom_in_action)
+        zoom_out_action = QAction("&Zoom out", self)
+        zoom_out_action.triggered.connect(lambda: self.__zoom(5.0 / 6.0))
+        zoom_out_action.setShortcut(QKeySequence("Ctrl+-"))
+        view_menu.addAction(zoom_out_action)
+
         self.help_button = QPushButton("Help")
         self.help_button.clicked.connect(self.help_dialog.show)
         menu_bar.setCornerWidget(self.help_button, Qt.TopRightCorner)
@@ -397,6 +409,12 @@ class TBorNotTBDialog(QMainWindow):
 
         main_widget = self.__create_main_widget()
         layout.addWidget(main_widget)
+
+    def __zoom(self, scale_factor):
+        if self.selected_image_label.pixmap():
+            self.selected_image_label.resize(
+                scale_factor * self.selected_image_label.size()
+            )
 
     def __file_processed(self):
         """
@@ -451,7 +469,10 @@ class TBorNotTBDialog(QMainWindow):
         self.selected_image_label = QLabel()
         scroll_area = QScrollArea()
         scroll_area.setWidget(self.selected_image_label)
-        scroll_area.setWidgetResizable(True)
+        # If we used setWidgetResizable(True) the qlabel's pixmap determines the size and is shown at full resolution.
+        # Most often that is too large for the image to fully be visible, and you need to scroll to see parts of it.
+        scroll_area.setWidgetResizable(False)
+        scroll_area.setBackgroundRole(QPalette.Dark)
         right_widget.addWidget(scroll_area)
 
         info_widget = QWidget()
@@ -566,6 +587,20 @@ class TBorNotTBDialog(QMainWindow):
             image = image_file_reader.Execute()
             self.selected_image_row_index = image_row_index
             self.selected_image_label.setPixmap(sitk2qpixmap(image))
+            # The image is scaled to fit the label size. To keep the image's
+            # aspect ratio the label width is changed accordingly. In the end, the
+            # image is scaled to fit the updated label size.
+            self.selected_image_label.setScaledContents(True)
+            new_label_width = (
+                self.selected_image_label.parentWidget().size().height()
+                * self.selected_image_label.pixmap().size().width()
+                / self.selected_image_label.pixmap().size().height()
+            )
+            self.selected_image_label.resize(
+                new_label_width,
+                self.selected_image_label.parentWidget().size().height(),
+            )
+
             self.selected_image_information_edit.setText(
                 "\n".join([f"{index}: {value}" for index, value in image_info.items()])
             )
